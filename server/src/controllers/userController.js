@@ -23,9 +23,10 @@ async function setUserActive(req, res) {
 
 // GET /api/users/reports  (admin) - simple performance snapshot
 async function getReports(req, res) {
-  const [statusCounts, agents] = await Promise.all([
+  const [statusCounts, agents, deliveredOrders] = await Promise.all([
     Order.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    User.find({ role: 'agent' }).select('-password')
+    User.find({ role: 'agent' }).select('-password'),
+    Order.find({ status: 'delivered' }).select('createdAt statusHistory')
   ]);
 
   const totalOrders = statusCounts.reduce((sum, s) => sum + s.count, 0);
@@ -34,6 +35,27 @@ async function getReports(req, res) {
   const cancelled = statusCounts.find((s) => s._id === 'cancelled')?.count || 0;
   const resolved = delivered + rto + cancelled;
   const onTimeRate = resolved > 0 ? Math.round((delivered / resolved) * 100) : null;
+
+  // Active deliveries: orders currently out on the road right now.
+  const activeDeliveries =
+    (statusCounts.find((s) => s._id === 'in_transit')?.count || 0) +
+    (statusCounts.find((s) => s._id === 'out_for_delivery')?.count || 0);
+
+  // Average delivery duration: time from when the order was placed to the
+  // moment it was marked "delivered", averaged across all delivered orders.
+  const durationsMs = deliveredOrders
+    .map((o) => {
+      const deliveredEntry = o.statusHistory.find((h) => h.status === 'delivered');
+      if (!deliveredEntry) return null;
+      return new Date(deliveredEntry.timestamp).getTime() - new Date(o.createdAt).getTime();
+    })
+    .filter((ms) => ms !== null && ms >= 0);
+
+  let avgDeliveryDurationMinutes = null;
+  if (durationsMs.length > 0) {
+    const avgMs = durationsMs.reduce((sum, ms) => sum + ms, 0) / durationsMs.length;
+    avgDeliveryDurationMinutes = Math.round(avgMs / 60000);
+  }
 
   const perAgent = await Order.aggregate([
     { $match: { assignedAgent: { $ne: null } } },
@@ -45,7 +67,14 @@ async function getReports(req, res) {
     return { agentId: row._id, name: agent?.name || 'Unknown', total: row.total, delivered: row.delivered };
   });
 
-  res.json({ totalOrders, statusCounts, onTimeRate, perAgent: perAgentWithNames });
+  res.json({
+    totalOrders,
+    statusCounts,
+    onTimeRate,
+    activeDeliveries,
+    avgDeliveryDurationMinutes,
+    perAgent: perAgentWithNames
+  });
 }
 
 module.exports = { getAllUsers, getAgents, setUserActive, getReports };

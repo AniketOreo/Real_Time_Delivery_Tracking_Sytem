@@ -1,6 +1,7 @@
 const LABELS = {
   pending: 'Pending',
   ready_to_ship: 'Ready to ship',
+  picked_up: 'Picked up',
   in_transit: 'In transit',
   out_for_delivery: 'Out for delivery',
   delivered: 'Delivered',

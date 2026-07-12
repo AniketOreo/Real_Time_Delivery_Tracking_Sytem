@@ -1,0 +1,23 @@
+{
+  "name": "delivery-tracking-system",
+  "version": "1.0.0",
+  "description": "A full-stack, real-time delivery tracking platform. Customers place and track orders on a live map, delivery agents update status and share their location, and admins manage orders, users, and monitor the whole fleet from one console.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AniketOreo/Real_Time_Delivery_Tracking_Sytem.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AniketOreo/Real_Time_Delivery_Tracking_Sytem/issues"
+  },
+  "homepage": "https://github.com/AniketOreo/Real_Time_Delivery_Tracking_Sytem#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

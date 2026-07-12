@@ -5,11 +5,13 @@ import StatusBadge from '../../components/StatusBadge';
 
 const NEXT_STATUS = {
   ready_to_ship: 'in_transit',
+  picked_up: 'in_transit',
   in_transit: 'out_for_delivery',
   out_for_delivery: 'delivered'
 };
 const NEXT_LABEL = {
   ready_to_ship: 'Mark in transit',
+  picked_up: 'Mark in transit',
   in_transit: 'Mark out for delivery',
   out_for_delivery: 'Mark delivered'
 };

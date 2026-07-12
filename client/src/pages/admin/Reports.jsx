@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../../api/axios';
 import StatusBadge from '../../components/StatusBadge';
 
+function formatDuration(minutes) {
+  if (minutes === null || minutes === undefined) return '—';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
 export default function Reports() {
   const [data, setData] = useState(null);
 
@@ -23,6 +31,14 @@ export default function Reports() {
         <div className="card">
           <div className="muted">On-time delivery rate</div>
           <div style={{ fontSize: 24, fontWeight: 500 }}>{data.onTimeRate === null ? '—' : `${data.onTimeRate}%`}</div>
+        </div>
+        <div className="card">
+          <div className="muted">Active deliveries</div>
+          <div style={{ fontSize: 24, fontWeight: 500 }}>{data.activeDeliveries}</div>
+        </div>
+        <div className="card">
+          <div className="muted">Average delivery duration</div>
+          <div style={{ fontSize: 24, fontWeight: 500 }}>{formatDuration(data.avgDeliveryDurationMinutes)}</div>
         </div>
       </div>
 

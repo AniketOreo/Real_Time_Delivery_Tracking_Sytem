@@ -6,16 +6,41 @@ export default function Home() {
 
   return (
     <div className="container">
-      <h2>Delivery tracking system</h2>
-      {!user && (
+      <div className="hero">
+        <span className="hero-eyebrow">
+          <span className="pulse" /> Live tracking, end to end
+        </span>
+        <h1>Every order, on the map, in real time.</h1>
         <p>
-          <Link to="/login">Log in</Link> or <Link to="/register">sign up</Link> to place
-          an order, run deliveries, or manage the platform.
+          Place an order, watch it move, and know exactly when it lands —
+          for customers, agents, and admins alike.
         </p>
-      )}
-      {user?.role === 'customer' && <p><Link to="/customer/place-order">Place a new order</Link> or view your <Link to="/customer/history">order history</Link>.</p>}
-      {user?.role === 'agent' && <p>Go to your <Link to="/agent">assigned deliveries</Link>.</p>}
-      {user?.role === 'admin' && <p>Go to <Link to="/admin/orders">manage orders</Link>, <Link to="/admin/monitor">the live monitor</Link>, or <Link to="/admin/reports">reports</Link>.</p>}
+
+        <div className="hero-links">
+          {!user && (
+            <>
+              <Link to="/login"><button>Log in</button></Link>
+              <Link to="/register"><button className="primary">Sign up</button></Link>
+            </>
+          )}
+          {user?.role === 'customer' && (
+            <>
+              <Link to="/customer/place-order"><button className="primary">Place a new order</button></Link>
+              <Link to="/customer/history"><button>View order history</button></Link>
+            </>
+          )}
+          {user?.role === 'agent' && (
+            <Link to="/agent"><button className="primary">Go to assigned deliveries</button></Link>
+          )}
+          {user?.role === 'admin' && (
+            <>
+              <Link to="/admin/orders"><button className="primary">Manage orders</button></Link>
+              <Link to="/admin/monitor"><button>Live monitor</button></Link>
+              <Link to="/admin/reports"><button>Reports</button></Link>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const STATUSES = [
   'pending',
   'ready_to_ship',
+  'picked up',
   'in_transit',
   'out_for_delivery',
   'delivered',

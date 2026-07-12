@@ -12,7 +12,13 @@ export default function Navbar() {
 
   return (
     <div className="navbar">
-      <Link to="/"><strong>Delivery tracking</strong></Link>
+      <Link to="/" className="brand">
+        <svg className="brand-mark" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path className="brand-path" d="M2 15C6 15 6 5 10 5C13 5 13 12 17 12" stroke="var(--route)" strokeWidth="1.6" strokeLinecap="round" />
+          <circle className="brand-dot" cx="17" cy="12" r="2.4" fill="var(--route)" />
+        </svg>
+        <span>Ship<span className="brand-nest">Nest</span></span>
+      </Link>
       <nav>
         {!user && (
           <>
@@ -37,7 +43,7 @@ export default function Navbar() {
         )}
         {user && (
           <>
-            <span className="muted">{user.name} ({user.role})</span>
+            <span className="user-chip">{user.name} · {user.role}</span>
             <button onClick={handleLogout}>Log out</button>
           </>
         )}
