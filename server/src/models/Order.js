@@ -7,6 +7,7 @@ const STATUSES = [
   'in_transit',
   'out_for_delivery',
   'delivered',
+  'failed_attempt',
   'cancelled',
   'rto'
 ];
@@ -45,7 +46,9 @@ const orderSchema = new mongoose.Schema(
       }
     ],
 
-    notes: String
+    notes: String,
+    failureReason: { type: String, default: null },
+    otp: { type: String, default: null }
   },
   { timestamps: true }
 );

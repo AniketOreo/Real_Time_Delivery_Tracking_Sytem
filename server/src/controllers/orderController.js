@@ -15,6 +15,8 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: 'Pickup and dropoff address and location are required.' });
     }
 
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
     const order = await Order.create({
       orderNumber: generateOrderNumber(),
       customer: req.user._id,
@@ -23,6 +25,7 @@ async function createOrder(req, res) {
       pickupLocation,
       dropoffLocation,
       notes,
+      otp,
       status: 'pending',
       statusHistory: [{ status: 'pending' }]
     });
@@ -49,6 +52,17 @@ async function getAgentOrders(req, res) {
   })
     .populate('customer', 'name phone')
     .sort({ createdAt: -1 });
+  res.json({ orders });
+}
+
+// GET /api/orders/agent/history (agent)
+async function getAgentHistory(req, res) {
+  const orders = await Order.find({
+    assignedAgent: req.user._id,
+    status: { $in: ['delivered', 'failed_attempt', 'rto'] }
+  })
+    .populate('customer', 'name phone')
+    .sort({ updatedAt: -1 });
   res.json({ orders });
 }
 
@@ -105,7 +119,7 @@ async function assignAgent(req, res) {
 
 // PATCH /api/orders/:id/status  (assigned agent or admin)
 async function updateStatus(req, res) {
-  const { status, note } = req.body;
+  const { status, note, failureReason, providedOtp } = req.body;
   if (!Order.STATUSES.includes(status)) {
     return res.status(400).json({ message: 'Invalid status value.' });
   }
@@ -118,8 +132,21 @@ async function updateStatus(req, res) {
     return res.status(403).json({ message: "You don't have access to this order." });
   }
 
+  if (status === 'delivered') {
+    if (order.otp && providedOtp !== order.otp) {
+      return res.status(400).json({ message: 'Invalid OTP provided for delivery.' });
+    }
+  }
+
+  if (status === 'failed_attempt') {
+    if (!failureReason) {
+      return res.status(400).json({ message: 'Failure reason is required.' });
+    }
+    order.failureReason = failureReason;
+  }
+
   order.status = status;
-  order.statusHistory.push({ status, note });
+  order.statusHistory.push({ status, note: note || failureReason });
   await order.save();
 
   const io = req.app.get('io');
@@ -137,6 +164,7 @@ module.exports = {
   createOrder,
   getMyOrders,
   getAgentOrders,
+  getAgentHistory,
   getAllOrders,
   getOrderById,
   assignAgent,

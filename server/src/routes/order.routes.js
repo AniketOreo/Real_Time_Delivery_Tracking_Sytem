@@ -5,6 +5,7 @@ const {
   createOrder,
   getMyOrders,
   getAgentOrders,
+  getAgentHistory,
   getAllOrders,
   getOrderById,
   assignAgent,
@@ -18,6 +19,7 @@ router.use(protect);
 router.post('/', allowRoles('customer'), createOrder);
 router.get('/mine', allowRoles('customer'), getMyOrders);
 router.get('/agent/mine', allowRoles('agent'), getAgentOrders);
+router.get('/agent/history', allowRoles('agent'), getAgentHistory);
 router.get('/', allowRoles('admin'), getAllOrders);
 router.get('/:id', getOrderById);
 router.patch('/:id/assign', allowRoles('admin'), assignAgent);
