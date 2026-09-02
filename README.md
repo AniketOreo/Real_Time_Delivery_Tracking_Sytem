@@ -1,10 +1,8 @@
-# Delivery Tracking System
+# Smart Logistics & Real-Time Delivery Platform
 
-A full-stack, real-time delivery tracking platform. Customers place and track
-orders on a live map, delivery agents update status and share their location,
-and admins manage orders, users, and monitor the whole fleet from one console.
+A full-stack, real-time delivery tracking platform designed to mimic large-scale logistics operations (like Delhivery). It features real-time WebSocket map tracking, advanced delivery workflows (OTPs, failure reporting), and is currently being upgraded with an **Agentic AI & RAG system** for smart dispatching and automated customer support.
 
-## Tech stack
+## Tech Stack
 
 | Layer      | Choice                                  |
 |------------|------------------------------------------|
@@ -13,9 +11,29 @@ and admins manage orders, users, and monitor the whole fleet from one console.
 | Database   | MongoDB (Mongoose)                        |
 | Real-time  | Socket.IO (WebSockets)                    |
 | Maps       | Google Maps JavaScript API                |
-| Auth       | JWT                                       |
+| AI (LLM)   | Google Gemini API (`@google/genai`)       |
+| Vector DB  | Qdrant Cloud                              |
+| Auth       | JWT (Stateless)                           |
 
-## Project structure
+## Key Features & Functional Requirements
+
+### Customer Features
+- **Live Order Tracking**: Watch the delivery agent's car move on a live map via WebSockets.
+- **Secure Handoffs**: Customers receive an auto-generated 4-digit OTP to prove identity to the driver upon delivery.
+- **AI Support (WIP)**: A chatbot that uses RAG over company policies to answer shipping questions and uses Tool Calling to fetch live order statuses.
+
+### Delivery Agent Features
+- **Advanced Workflow UI**: Active vs. History dashboards for workload tracking.
+- **Flexible Status Management**: Ability to report failures with specific reasons (e.g., "Customer Unavailable", "Address Incomplete") or revert accidental status updates.
+- **Action Links**: One-click buttons to call the customer or open Google Maps navigation to the drop-off coordinates.
+- **Delivery Proof**: Enforced OTP verification before marking a package as 'Delivered'.
+- **Live GPS Sharing**: Streams location to the backend via `navigator.geolocation` and WebSockets.
+
+### Admin Features
+- **Fleet Monitoring**: Manage orders, users, and assign deliveries to agents.
+- **Smart Dispatch AI (WIP)**: A command-center AI where the Admin can type prompts (e.g., "Assign Order #123 to the closest agent with zero active workloads") and the LLM will physically execute the database update.
+
+## Project Structure
 
 ```
 delivery-tracking-system/
@@ -24,7 +42,7 @@ delivery-tracking-system/
 │   │   ├── config/         DB connection
 │   │   ├── models/         User, Order schemas
 │   │   ├── middleware/     auth + role guards
-│   │   ├── controllers/    route handlers
+│   │   ├── controllers/    route handlers (including AI RAG/Tool logic)
 │   │   ├── routes/         Express routers
 │   │   ├── sockets/        Socket.IO event handlers
 │   │   └── utils/          helpers (JWT signing, etc.)
@@ -33,76 +51,34 @@ delivery-tracking-system/
     ├── src/
     │   ├── api/             axios instance
     │   ├── context/         Auth + Socket providers
-    │   ├── components/      shared UI
-    │   ├── pages/            customer / agent / admin views
+    │   ├── components/      shared UI (including AIChatBot widget)
+    │   ├── pages/           customer / agent / admin views
     │   └── styles/
     └── package.json
 ```
 
-## Getting started
+## Getting Started
 
 ### 1. Backend
 
 ```bash
 cd server
-cp .env.example .env      # fill in MONGO_URI and JWT_SECRET
+cp .env.example .env      # Fill in MONGO_URI and JWT_SECRET
 npm install
-npm run dev                # starts on http://localhost:5000
+npm run dev                # Starts on http://localhost:5000
 ```
 
 ### 2. Frontend
 
 ```bash
 cd client
-cp .env.example .env      # fill in VITE_API_URL and VITE_GOOGLE_MAPS_API_KEY
+cp .env.example .env      # Fill in VITE_API_URL and VITE_GOOGLE_MAPS_API_KEY
 npm install
-npm run dev                # starts on http://localhost:5173
+npm run dev                # Starts on http://localhost:5173
 ```
 
-You'll need:
-- A MongoDB connection string (local `mongod` or a free MongoDB Atlas cluster).
-- A Google Maps JavaScript API key with the **Maps JavaScript API** enabled
-  (billing must be turned on in Google Cloud, though usage stays within the
-  free tier for development).
+## Deployment Notes
 
-### 3. Try it out
-
-1. Register three users (via the `/register` page or `POST /api/auth/register`):
-   one with role `customer`, one `agent`, one `admin`.
-   (Role can be set directly in the request body for now — see the
-   "Hardening before production" note below.)
-2. Log in as the customer and place an order.
-3. Log in as the admin, open **Manage orders**, and assign the order to the agent.
-4. Log in as the agent, open **Assigned deliveries**, advance the order's
-   status and turn on **Share live location**.
-5. Log back in as the customer and open **Track order** — the map marker and
-   status badge update live as the agent's browser reports its position.
-
-## Functional requirements covered
-
-**Customer:** place and view orders, real-time location tracking, live status
-updates, order history.
-**Agent:** view assigned deliveries, update delivery status, share live location.
-**Admin:** manage orders and users, assign deliveries to agents, monitor live
-deliveries on a map, view basic performance reports.
-
-## Hardening before production
-
-This is a working scaffold, not a production-ready deployment. Before you ship it:
-
-- Move the JWT out of `localStorage` into an `httpOnly` cookie to reduce XSS risk.
-- Don't accept `role` from the registration request body — set new signups to
-  `customer` by default and create agents/admins through an authenticated
-  admin-only endpoint instead.
-- Add request validation (e.g. `zod` or `express-validator`) on every route.
-- Add rate limiting (`express-rate-limit`) on `/api/auth/*`.
-- Serve over HTTPS and set proper CORS origins for production.
-- Add indexes on frequently-queried Order fields (`customer`, `assignedAgent`, `status`).
-
-## Deploying
-
-- **Backend:** Render, Railway, or Fly.io all support long-running Node
-  processes with WebSockets. Vercel/Netlify serverless functions do **not**
-  support persistent Socket.IO connections — use them for the frontend only.
-- **Frontend:** Vercel or Netlify (`npm run build` → deploy the `dist/` folder).
-- **Database:** MongoDB Atlas free tier is enough to start.
+- **Backend:** Hosted on Render (Ensure `CLIENT_URL` is set to the frontend URL to avoid CORS blocks). Node.js is required for persistent Socket.IO connections.
+- **Frontend:** Hosted on Vercel. (Ensure environment variables prefixed with `VITE_` are injected at build time).
+- **Database:** MongoDB Atlas. Ensure the backend's IP is whitelisted (`0.0.0.0/0` for dynamic IPs).
