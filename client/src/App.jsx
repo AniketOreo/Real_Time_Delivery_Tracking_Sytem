@@ -17,6 +17,8 @@ import ManageUsers from './pages/admin/ManageUsers';
 import LiveMonitor from './pages/admin/LiveMonitor';
 import Reports from './pages/admin/Reports';
 
+import AIChatBot from './components/AIChatBot';
+
 export default function App() {
   return (
     <>
@@ -55,6 +57,8 @@ export default function App() {
 
         <Route path="*" element={<div className="container">Page not found.</div>} />
       </Routes>
+      
+      <AIChatBot />
     </>
   );
 }
