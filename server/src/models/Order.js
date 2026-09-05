@@ -37,6 +37,7 @@ const orderSchema = new mongoose.Schema(
       lng: Number,
       updatedAt: Date
     },
+    estimatedDeliveryDate: { type: Date },
 
     statusHistory: [
       {

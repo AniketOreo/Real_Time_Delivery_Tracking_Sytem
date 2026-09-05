@@ -7,6 +7,17 @@ function generateOrderNumber() {
   return `DT-${stamp}-${rand}`;
 }
 
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 // POST /api/orders  (customer)
 async function createOrder(req, res) {
   try {
@@ -17,6 +28,10 @@ async function createOrder(req, res) {
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
+    const distanceKm = getDistance(pickupLocation.lat, pickupLocation.lng, dropoffLocation.lat, dropoffLocation.lng);
+    const hours = (distanceKm / 40) + 24; // 40km/h average + 24h buffer
+    const estimatedDeliveryDate = new Date(Date.now() + hours * 60 * 60 * 1000);
+
     const order = await Order.create({
       orderNumber: generateOrderNumber(),
       customer: req.user._id,
@@ -24,6 +39,7 @@ async function createOrder(req, res) {
       dropoffAddress,
       pickupLocation,
       dropoffLocation,
+      estimatedDeliveryDate,
       notes,
       otp,
       status: 'pending',
@@ -117,9 +133,21 @@ async function assignAgent(req, res) {
   res.json({ order });
 }
 
+const STATUS_FLOW = {
+  'pending': ['ready_to_ship', 'cancelled'],
+  'ready_to_ship': ['picked up', 'cancelled'],
+  'picked up': ['in_transit', 'failed_attempt'],
+  'in_transit': ['out_for_delivery', 'failed_attempt'],
+  'out_for_delivery': ['delivered', 'failed_attempt'],
+  'delivered': [],
+  'failed_attempt': ['out_for_delivery', 'rto'],
+  'rto': [],
+  'cancelled': []
+};
+
 // PATCH /api/orders/:id/status  (assigned agent or admin)
 async function updateStatus(req, res) {
-  const { status, note, failureReason, providedOtp } = req.body;
+  const { status, note, failureReason, providedOtp, agentLat, agentLng } = req.body;
   if (!Order.STATUSES.includes(status)) {
     return res.status(400).json({ message: 'Invalid status value.' });
   }
@@ -132,9 +160,26 @@ async function updateStatus(req, res) {
     return res.status(403).json({ message: "You don't have access to this order." });
   }
 
+  // Admin can bypass state machine, Agent cannot
+  if (req.user.role !== 'admin') {
+    if (!STATUS_FLOW[order.status]?.includes(status)) {
+      return res.status(400).json({ message: `Invalid status transition from ${order.status} to ${status}` });
+    }
+  }
+
   if (status === 'delivered') {
     if (order.otp && providedOtp !== order.otp) {
       return res.status(400).json({ message: 'Invalid OTP provided for delivery.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      if (!agentLat || !agentLng) {
+        return res.status(400).json({ message: 'Agent GPS location is required to mark as delivered.' });
+      }
+      const distance = getDistance(agentLat, agentLng, order.dropoffLocation.lat, order.dropoffLocation.lng);
+      if (distance > 0.5) { // 500 meters
+        return res.status(400).json({ message: `Geofence block: You are ${Math.round(distance*1000)}m away. You must be within 500m of the drop-off location.` });
+      }
     }
   }
 
@@ -149,12 +194,24 @@ async function updateStatus(req, res) {
   order.statusHistory.push({ status, note: note || failureReason });
   await order.save();
 
+  // Create notification for the customer
+  const Notification = require('../models/Notification');
+  const notificationMsg = `Your order ${order.orderNumber} is now ${status.replace(/_/g, ' ')}.`;
+  const notification = await Notification.create({
+    user: order.customer,
+    message: notificationMsg,
+    order: order._id
+  });
+
   const io = req.app.get('io');
   io.to(`order:${order._id}`).emit('order:statusUpdate', {
     orderId: order._id,
     status: order.status,
     statusHistory: order.statusHistory
   });
+  // Emit to customer specifically (assuming they join a room with their user ID)
+  io.to(`user:${order.customer}`).emit('notification:new', notification);
+  
   io.to('admin').emit('order:updated', { orderId: order._id });
 
   res.json({ order });

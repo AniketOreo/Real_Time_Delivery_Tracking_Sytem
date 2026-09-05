@@ -26,6 +26,9 @@ function initSockets(io) {
     if (user.role === 'admin') {
       socket.join('admin');
     }
+    
+    // Join a personal room for direct user notifications
+    socket.join(`user:${user._id}`);
 
     // Anyone tracking a specific order (customer, its agent, or an admin)
     // joins that order's room to receive its location/status events.
