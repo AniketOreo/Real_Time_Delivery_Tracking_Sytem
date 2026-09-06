@@ -65,8 +65,8 @@ async function getPolicyContext(query) {
     const queryVector = embeddingResponse.embeddings[0].values;
 
     // 2. Search Qdrant
-    const searchResults = await qdrant.search(COLLECTION_NAME, {
-      vector: queryVector,
+    const searchResults = await qdrant.query(COLLECTION_NAME, {
+      query: queryVector,
       limit: 2, // Get top 2 most relevant policies
     });
 
@@ -101,7 +101,7 @@ async function chatCustomer(req, res) {
 
     // Step 2: Initialize Gemini Chat Session with Tools
     const chat = ai.chats.create({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       config: {
         systemInstruction,
         tools: [{ functionDeclarations: [checkOrderStatusDeclaration] }],
