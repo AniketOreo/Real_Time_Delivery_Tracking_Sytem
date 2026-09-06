@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -43,6 +44,7 @@ export default function Navbar() {
         )}
         {user && (
           <>
+            {user.role === 'customer' && <NotificationBell />}
             <span className="user-chip">{user.name} · {user.role}</span>
             <button onClick={handleLogout}>Log out</button>
           </>

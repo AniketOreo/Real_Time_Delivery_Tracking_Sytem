@@ -3,9 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import api from '../../api/axios';
 
-const mapContainerStyle = { width: '100%', height: '400px', borderRadius: '10px', marginTop: '16px', marginBottom: '16px' };
+import { nightModeStyle } from '../../utils/mapStyles';
+
+const mapContainerStyle = { width: '100%', height: '400px', borderRadius: '16px' };
 // Default center (e.g. some central location if no pins are set, let's use a generic one or India's center since they mentioned Delhivery)
 const defaultCenter = { lat: 28.6139, lng: 77.2090 }; 
+
+const glassmorphicStyle = {
+  padding: '8px',
+  background: 'rgba(255, 255, 255, 0.1)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  borderRadius: '24px',
+  boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+  overflow: 'hidden'
+};
 
 export default function PlaceOrder() {
   const navigate = useNavigate();
@@ -20,6 +33,25 @@ export default function PlaceOrder() {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   });
+
+  const handleAddressBlur = (type) => {
+    if (!window.google) return;
+    const geocoder = new window.google.maps.Geocoder();
+    const address = type === 'pickup' ? form.pickupAddress : form.dropoffAddress;
+    if (!address) return;
+
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const lat = results[0].geometry.location.lat();
+        const lng = results[0].geometry.location.lng();
+        if (type === 'pickup') {
+          setForm(prev => ({ ...prev, pickupLat: lat.toFixed(6), pickupLng: lng.toFixed(6) }));
+        } else {
+          setForm(prev => ({ ...prev, dropoffLat: lat.toFixed(6), dropoffLng: lng.toFixed(6) }));
+        }
+      }
+    });
+  };
 
   const handleMapClick = useCallback((e) => {
     const lat = e.latLng.lat();
@@ -96,16 +128,18 @@ export default function PlaceOrder() {
           ) : !isLoaded ? (
             <div className="card muted" style={{ marginTop: 16 }}>Loading map…</div>
           ) : (
-            <GoogleMap 
-              mapContainerStyle={mapContainerStyle} 
-              center={currentCenter} 
-              zoom={10}
-              onClick={handleMapClick}
-              options={{ disableDefaultUI: true, zoomControl: true }}
-            >
-              {hasPickup && <Marker position={{ lat: pLat, lng: pLng }} label="P" title="Pickup" />}
-              {hasDropoff && <Marker position={{ lat: dLat, lng: dLng }} label="D" title="Dropoff" />}
-            </GoogleMap>
+            <div style={{ ...glassmorphicStyle, marginTop: '16px', marginBottom: '16px' }}>
+              <GoogleMap 
+                mapContainerStyle={mapContainerStyle} 
+                center={currentCenter} 
+                zoom={10}
+                onClick={handleMapClick}
+                options={{ styles: nightModeStyle, disableDefaultUI: true, zoomControl: true }}
+              >
+                {hasPickup && <Marker position={{ lat: pLat, lng: pLng }} label="P" title="Pickup" />}
+                {hasDropoff && <Marker position={{ lat: dLat, lng: dLng }} label="D" title="Dropoff" />}
+              </GoogleMap>
+            </div>
           )}
         </div>
 
@@ -116,7 +150,10 @@ export default function PlaceOrder() {
             <div className="form-group">
               <label htmlFor="pickupAddress">Pickup Address</label>
               <input id="pickupAddress" required value={form.pickupAddress}
-                onChange={(e) => setForm({ ...form, pickupAddress: e.target.value })} />
+                onChange={(e) => setForm({ ...form, pickupAddress: e.target.value })}
+                onBlur={() => handleAddressBlur('pickup')}
+                placeholder="Type address, map will update"
+              />
             </div>
             <div className="row form-group" style={{ gap: 10 }}>
               <div style={{ flex: 1 }}>
@@ -136,7 +173,10 @@ export default function PlaceOrder() {
             <div className="form-group">
               <label htmlFor="dropoffAddress">Dropoff Address</label>
               <input id="dropoffAddress" required value={form.dropoffAddress}
-                onChange={(e) => setForm({ ...form, dropoffAddress: e.target.value })} />
+                onChange={(e) => setForm({ ...form, dropoffAddress: e.target.value })}
+                onBlur={() => handleAddressBlur('dropoff')}
+                placeholder="Type address, map will update"
+              />
             </div>
             <div className="row form-group" style={{ gap: 10 }}>
               <div style={{ flex: 1 }}>

@@ -60,7 +60,14 @@ export default function TrackOrder() {
         <h2>{order.orderNumber}</h2>
         <StatusBadge status={order.status} />
       </div>
-      <p className="muted">{order.pickupAddress} → {order.dropoffAddress}</p>
+      <p className="muted" style={{ marginBottom: '4px' }}>{order.pickupAddress} → {order.dropoffAddress}</p>
+      
+      {order.estimatedDeliveryDate && (
+        <p style={{ margin: '0 0 16px 0', fontSize: '0.95rem' }}>
+          <strong>Estimated Delivery: </strong> 
+          {new Date(order.estimatedDeliveryDate).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
+      )}
 
       <MapView center={mapCenter} markers={markers} />
 

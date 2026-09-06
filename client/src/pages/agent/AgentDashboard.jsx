@@ -64,18 +64,38 @@ export default function AgentDashboard() {
   async function submitModalAction() {
     try {
       if (showModal.type === 'delivered') {
-        await api.patch(`/orders/${showModal.order._id}/status`, { 
-          status: 'delivered', 
-          providedOtp: otpInput 
-        });
+        if (!navigator.geolocation) {
+          setModalError('Geolocation is required for proof of delivery.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              await api.patch(`/orders/${showModal.order._id}/status`, { 
+                status: 'delivered', 
+                providedOtp: otpInput,
+                agentLat: pos.coords.latitude,
+                agentLng: pos.coords.longitude
+              });
+              setShowModal(null);
+              loadOrders();
+            } catch (err) {
+              setModalError(err.response?.data?.message || 'Failed to update order');
+            }
+          },
+          (err) => {
+            setModalError('Failed to get your GPS location. Please allow location access.');
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
       } else {
         await api.patch(`/orders/${showModal.order._id}/status`, { 
           status: 'failed_attempt', 
           failureReason 
         });
+        setShowModal(null);
+        loadOrders();
       }
-      setShowModal(null);
-      loadOrders();
     } catch (err) {
       setModalError(err.response?.data?.message || 'Failed to update order');
     }
