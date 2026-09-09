@@ -123,12 +123,14 @@ async function chatCustomer(req, res) {
         const apiResponse = await executeCheckOrderStatus(orderNumber);
         
         // Send the DB result back to Gemini so it can formulate an English answer
-        response = await chat.sendMessage([{
-          functionResponse: {
-            name: 'check_order_status',
-            response: JSON.parse(apiResponse)
-          }
-        }]);
+        response = await chat.sendMessage({
+          message: [{
+            functionResponse: {
+              name: 'check_order_status',
+              response: JSON.parse(apiResponse)
+            }
+          }]
+        });
       }
     }
 
